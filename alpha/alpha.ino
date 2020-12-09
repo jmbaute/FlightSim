@@ -1,6 +1,10 @@
-//#include <Encoder.h>
 #include "EncoderTool.h"
 using namespace EncoderTool;
+
+//EncoderTool eliminates bounce in the encoder.
+//Use instead of built in Encoder library.
+//Requires updated Bounce2 library for Teensy.
+//https://github.com/luni64/EncoderTool
 
 #include <FlightSimSwitches.h>
 #include <math.h>  
