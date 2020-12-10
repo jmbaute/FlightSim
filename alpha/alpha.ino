@@ -122,15 +122,13 @@ void loop() {
    // if there was movement, change the dataref
    if (comOuterDiff!=0) {
       if(comOuterDiff==-1){
-      comOuterCCW=1;
-      comOuterCCW=0;
+      comOuterCCW.once();
       Serial.println((String) "direction: CCW");
       }
 
     if(comOuterDiff==1){
-          comOuterCW=1;
-          comOuterCW=0;
-          Serial.println((String) "direction: CW");
+      comOuterCW.once();
+      Serial.println((String) "direction: CW");
           }
 
     //reset
