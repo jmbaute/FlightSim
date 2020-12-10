@@ -31,6 +31,12 @@ FlightSimFloat baroSetting;
 FlightSimFloat baroSettingG5;
 elapsedMillis baroSettingClickInterval = 0;
 
+//G530 comOuter
+Encoder comOuterEnc;
+short comOuterPrev=0;
+FlightSimCommand comOuterCW;
+FlightSimCommand comOuterCCW;
+
 void setup() {
   Serial.begin(57600);
 
@@ -47,8 +53,9 @@ void setup() {
 
    // delay(1000);
   // set pushbutton 1 command
- pb1 = XPlaneRef("RXP/GNS/PROC_1");
+ pb1 = XPlaneRef("RXP/GNS/COM_OUTR_CW_1");
 
+//---------------------------------------------------------------------
 //encoders
 
   //heading bug
@@ -56,9 +63,14 @@ void setup() {
   headingBug = XPlaneRef("sim/cockpit2/autopilot/heading_dial_deg_mag_pilot");
 
   //altimeter
-  baroSettingEnc.begin(10,11,CountMode::half);
+  baroSettingEnc.begin(15,16,CountMode::half);
   baroSetting= XPlaneRef("sim/cockpit/misc/barometer_setting");
   baroSettingG5= XPlaneRef("sim/cockpit2/gauges/actuators/barometer_setting_in_hg_stby");
+
+  //com outer
+  comOuterEnc.begin(10,11,CountMode::half);
+  comOuterCW=XPlaneRef("RXP/GNS/COM_OUTR_CW_1");
+  comOuterCCW=XPlaneRef("RXP/GNS/COM_OUTR_CCW_1");
 
 //end encoders
 
@@ -69,6 +81,79 @@ void loop() {
   FlightSim.update();
 
 //encoder stuff
+  //-------------------------------------------
+  //   COM OUTER
+  //-------------------------------------------
+  // compare current position to previous position
+
+  //current position
+  short comOuterPos=comOuterEnc.getValue();
+  short comOuterDiff;
+  
+  if(comOuterPos)
+   {
+      comOuterDiff = (comOuterPos - comOuterPrev);
+  
+      if(comOuterDiff <0)
+        comOuterDiff=-1;
+  
+      if(comOuterDiff >0)
+        comOuterDiff=1;  
+        
+  
+      //if you spin faster it moves faster
+//      if(baroSettingClickInterval < 30)
+//       baroSettingDiff=baroSettingDiff*2;
+   }
+   else
+   {
+    comOuterDiff=0;
+   }
+  
+  //print output for debugging
+  if(comOuterPos!=comOuterPrev)
+  { 
+   Serial.println((String) "comOuterDiff: " + comOuterDiff);
+   Serial.println((String) "comOuterPos: " + comOuterPos);
+   Serial.println((String) "comOuterDiff: " + comOuterDiff);
+  }
+
+ 
+   // if there was movement, change the dataref
+   if (comOuterDiff!=0) {
+      if(comOuterDiff==-1){
+      comOuterCCW=1;
+      comOuterCCW=0;
+      Serial.println((String) "direction: CCW");
+      }
+
+    if(comOuterDiff==1){
+          comOuterCW=1;
+          comOuterCW=0;
+          Serial.println((String) "direction: CW");
+          }
+
+    //reset
+    comOuterDiff=0;
+
+    //debug output what we set it to
+    Serial.println((String) "comOuter: " + comOuterDiff);
+    Serial.println((String) "-------------------------");
+
+    //reset positions
+    comOuterPrev=0;
+    comOuterEnc.setValue(0);
+
+    
+    
+
+    //reset clock to 0
+//    baroSettingClickInterval=0;
+    }
+
+  //-------------------------------------------
+  //   END COM OUTER
+  //-------------------------------------------  
 
   //-------------------------------------------
   //   HEADING BUG
