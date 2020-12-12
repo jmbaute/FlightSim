@@ -15,7 +15,10 @@ FlightSimOnOffCommandSwitch taxiLightSwitch(2);
 FlightSimOnOffCommandSwitch landingLightSwitch(5);
 
 // Push buttons
-FlightSimPushbutton pb1(12); // Pushbutton between pin 12 and GND
+FlightSimPushbutton pb1(13); // Pushbutton between pin 12 and GND
+
+//GPS Pushbuttons
+FlightSimPushbutton  pbComVol(23);
 
 //encoders
 //heading bug
@@ -37,6 +40,12 @@ short comOuterPrev=0;
 FlightSimCommand comOuterCW;
 FlightSimCommand comOuterCCW;
 
+//G530 comInner
+Encoder comInnerEnc;
+short comInnerPrev=0;
+FlightSimCommand comInnerCW;
+FlightSimCommand comInnerCCW;
+
 void setup() {
   Serial.begin(57600);
 
@@ -51,9 +60,12 @@ void setup() {
   switches.setDebug(DEBUG_SWITCHES);
   switches.begin();
 
-   // delay(1000);
+    delay(1000);
   // set pushbutton 1 command
- pb1 = XPlaneRef("RXP/GNS/COM_OUTR_CW_1");
+ pb1 = XPlaneRef("RXP/GNS/ENT_1");
+
+ //GPS pushbuttons
+ pbComVol= XPlaneRef("RXP/GNS/COM_PUSH_1");
 
 //---------------------------------------------------------------------
 //encoders
@@ -68,9 +80,14 @@ void setup() {
   baroSettingG5= XPlaneRef("sim/cockpit2/gauges/actuators/barometer_setting_in_hg_stby");
 
   //com outer
-  comOuterEnc.begin(10,11,CountMode::half);
+  comOuterEnc.begin(21,22,CountMode::half);
   comOuterCW=XPlaneRef("RXP/GNS/COM_OUTR_CW_1");
   comOuterCCW=XPlaneRef("RXP/GNS/COM_OUTR_CCW_1");
+
+  //com inner
+  comInnerEnc.begin(19,20,CountMode::half);
+  comInnerCW=XPlaneRef("RXP/GNS/COM_INNR_CW_1");
+  comInnerCCW=XPlaneRef("RXP/GNS/COM_INNR_CCW_1");
 
 //end encoders
 
@@ -80,7 +97,81 @@ void setup() {
 void loop() {
   FlightSim.update();
 
+
+
 //encoder stuff
+#pragma region COM
+  //-------------------------------------------
+  //   COM INNER
+  //-------------------------------------------
+  // compare current position to previous position
+
+  //current position
+  short comInnerPos=comInnerEnc.getValue();
+  short comInnerDiff;
+  
+  if(comInnerPos)
+   {
+      comInnerDiff = (comInnerPos - comInnerPrev);
+  
+      if(comInnerDiff <0)
+        comInnerDiff=-1;
+  
+      if(comInnerDiff >0)
+        comInnerDiff=1;  
+        
+  
+      //if you spin faster it moves faster
+//      if(baroSettingClickInterval < 30)
+//       baroSettingDiff=baroSettingDiff*2;
+   }
+   else
+   {
+    comInnerDiff=0;
+   }
+  
+  //print output for debugging
+  if(comInnerPos!=comInnerPrev)
+  { 
+   Serial.println((String) "comInnerDiff: " + comInnerDiff);
+   Serial.println((String) "comInnerPos: " + comInnerPos);
+   Serial.println((String) "comInnerDiff: " + comInnerDiff);
+  }
+
+ 
+   // if there was movement, change the dataref
+   if (comInnerDiff!=0) {
+      if(comInnerDiff==-1){
+      comInnerCCW.once();
+      Serial.println((String) "direction: CCW");
+      }
+
+    if(comInnerDiff==1){
+      comInnerCW.once();
+      Serial.println((String) "direction: CW");
+          }
+
+    //reset
+    comInnerDiff=0;
+
+    //debug output what we set it to
+    Serial.println((String) "comInner: " + comInnerDiff);
+    Serial.println((String) "-------------------------");
+
+    //reset positions
+    comInnerPrev=0;
+    comInnerEnc.setValue(0);
+
+    
+    
+
+    //reset clock to 0
+//    baroSettingClickInterval=0;
+    }
+
+  //-------------------------------------------
+  //   END COM INNER
+  //-------------------------------------------
   //-------------------------------------------
   //   COM OUTER
   //-------------------------------------------
@@ -152,7 +243,9 @@ void loop() {
   //-------------------------------------------
   //   END COM OUTER
   //-------------------------------------------  
-
+#pragma endregion COM
+  
+#pragma region G5
   //-------------------------------------------
   //   HEADING BUG
   //-------------------------------------------
@@ -279,7 +372,7 @@ void loop() {
   //-------------------------------------------
   //   END ALTIMETER
   //-------------------------------------------  
-  
+#pragma endregion G5
  //end encoder
  
   switches.loop();
